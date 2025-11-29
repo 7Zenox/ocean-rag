@@ -32,7 +32,7 @@ def main():
          CMD_PREFIX + ["code/corrupt_tiles.py"]),
         ("Run baseline eval (Corrupted, Baseline1, Baseline2)",
          CMD_PREFIX + ["code/run_baseline_eval.py"]),
-        ("Run LLM ablation (LLM_Baseline, LLM_Lite, LLM_Full)",
+        ("Run LLM ablation (LLM_Baseline, LLM_Lite, LLM_Full, LLM_Real)",
          CMD_PREFIX + ["code/run_llm_ablation.py"]),
         ("Aggregate ablation summary",
          CMD_PREFIX + ["code/ablation_summary.py"]),
@@ -52,7 +52,7 @@ def main():
     print("Artifacts:")
     print("- benchmark_data/: clean & corrupted tiles")
     print("- results/baseline_results.csv, Corrupted_results.csv, Baseline1/2_results.csv")
-    print("- results/all_methods_results.csv, ablation_summary_rmse.csv")
+    print("- results/all_methods_results.csv, ablation_summary_rmse.csv (includes LLM_Baseline/Lite/Full/Real)")
     print("- results/baseline_comparison.png, correction_example.png, ablation_barplot.png")
     print("=" * 70)
 

@@ -1,5 +1,6 @@
 # code/llm_wrapper.py
 import os
+import json
 import numpy as np
 from llm_config import LLM_CONFIG
 
@@ -8,29 +9,70 @@ try:
 except ImportError:
     genai = None
 
+
 def call_llm(prompt: str) -> str:
-    """Wrapper for Google Gemini API."""
+    """Call Google Gemini and return raw text."""
     if LLM_CONFIG["provider"] == "gemini" and genai is not None:
-        api_key = os.environ.get("GEMINI_API_KEY", "AIzaSyBfdfQQ_UWVlzyVMy00yTbCVabiEBVF3FQ")
+        api_key = os.environ.get("GEMINI_API_KEY", "")
         if not api_key:
             raise ValueError("GEMINI_API_KEY environment variable not set")
-        
+
         client = genai.Client(api_key=api_key)
-        response = client.models.generate_content(
+        resp = client.models.generate_content(
             model=LLM_CONFIG["model"],
-            contents=prompt
+            contents=prompt,
         )
-        return response.text
+        return resp.text
     else:
-        # For now, just echo prompt (debugging stub)
-        return "STUB_RESPONSE"
+        # Safe default for dev if Gemini not available
+        return '{"threshold": 60.0, "window": 5}'
+
+
+def parse_rule(
+    json_str: str,
+    default_threshold: float = 60.0,
+    default_window: int = 5,
+) -> tuple[float, int]:
+    """Parse {"threshold": float, "window": int} from LLM output."""
+    try:
+        data = json.loads(json_str)
+        thr = float(data.get("threshold", default_threshold))
+        win = int(data.get("window", default_window))
+    except Exception:
+        thr = default_threshold
+        win = default_window
+
+    # Clamp to sane ranges
+    thr = max(10.0, min(thr, 300.0))
+    if win < 3:
+        win = 3
+    if win % 2 == 0:
+        win += 1  # make odd
+
+    return thr, win
+
+
+def apply_llm_rule(corrupted: np.ndarray, threshold: float, window: int) -> np.ndarray:
+    """Apply a spike-removal rule chosen by the LLM."""
+    from scipy.ndimage import median_filter
+
+    tile = corrupted.copy()
+    med = median_filter(tile, size=window)
+    diff = tile - med
+    mask = np.abs(diff) > threshold
+
+    corrected = tile.copy()
+    corrected[mask] = med[mask]
+    return corrected
+
 
 def llm_correct_tile(corrupted: np.ndarray, tile_id: int) -> np.ndarray:
     """
-    Interface that a real LLM-based corrector will satisfy.
-    For Week 2, you don't need to use this yet.
+    Real LLM-based corrector:
+    - Send tile-level statistics to Gemini.
+    - Get JSON with threshold+window.
+    - Apply that rule to the tile.
     """
-    # Build a compact textual representation (stats only, not full grid)
     depth_min = float(np.nanmin(corrupted))
     depth_max = float(np.nanmax(corrupted))
     depth_mean = float(np.nanmean(corrupted))
@@ -44,12 +86,19 @@ Depth statistics (meters):
 - max: {depth_max:.1f}
 - mean: {depth_mean:.1f}
 
-Suggest a simple rule to remove spikes and preserve realistic depth ranges.
-Return JSON with fields:
-- 'threshold'
-- 'window'
-"""
-    _ = call_llm(prompt)
-    # For now, ignore output and fallback to stub logic.
-    from llm_systems import LLMSystems
-    return LLMSystems.system_lite_llm(corrupted)
+Goal:
+Propose a conservative rule to remove obvious acoustic spikes while
+preserving real bathymetric structure.
+
+Respond with ONLY a JSON object, no extra text, with fields:
+- "threshold": float, depth difference (m) used to flag spikes
+- "window": odd int (3,5,7,...) for the median-filter window size
+
+Example:
+{{"threshold": 60.0, "window": 5}}
+""".strip()
+
+    raw = call_llm(prompt)
+    thr, win = parse_rule(raw)
+    corrected = apply_llm_rule(corrupted, threshold=thr, window=win)
+    return corrected

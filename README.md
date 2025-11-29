@@ -1,0 +1,1 @@
+source .venv/bin/activate && cd hydrogpt_project && python run_all.py

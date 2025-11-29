@@ -1,7 +1,17 @@
 # code/ablation_summary.py
 import pandas as pd
 
-methods = ["Corrupted", "Baseline1", "Baseline2", "LLM_Baseline", "LLM_Lite", "LLM_Full"]
+# Include all methods, including the real LLM
+methods = [
+    "Corrupted",
+    "Baseline1",
+    "Baseline2",
+    "LLM_Baseline",
+    "LLM_Lite",
+    "LLM_Full",
+    "LLM_Real",
+]
+
 dfs = []
 
 for m in methods:
