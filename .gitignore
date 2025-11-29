@@ -13,6 +13,7 @@ env/
 .ocean-rag/
 ocean-rag/
 *.swp
+.DS_Store
 
 # OS / Editor
 .DS_Store
