@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Environments
+.env
+.venv
+venv/
+env/
+.ocean-rag/
+ocean-rag/
+*.swp
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Build / dist
+build/
+dist/
+*.egg-info/
